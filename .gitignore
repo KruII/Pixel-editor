@@ -1,0 +1,36 @@
+# Pliki kompilacji
+/target/
+
+# Pliki logów
+*.log
+
+# Pliki IDE (IntelliJ, Eclipse, NetBeans itp.)
+.idea/
+*.iml
+*.classpath
+*.project
+.settings/
+
+# Pliki systemowe
+*.DS_Store
+Thumbs.db
+
+# Pliki tymczasowe
+*.tmp
+*.swp
+*.bak
+*.old
+*.~*
+
+# Zasoby binarne
+*.class
+
+# Pliki Maven
+.mvn/
+!pom.xml
+
+# Pliki testowe
+/test-output/
+
+# Lokalne konfiguracje systemowe
+.vscode/
