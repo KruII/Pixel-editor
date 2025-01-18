@@ -4,34 +4,14 @@ import com.kruii.ui.Tool;
 import com.kruii.ui.PixelCanvas;
 import com.kruii.model.PixelModel;
 import com.kruii.utils.ColorBorder;
+import com.kruii.utils.SizeSettings;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 
 public class Eraser implements Tool {
-    private final JPanel settingsPanel;
-    private int eraserSize = 1;
-
-    public Eraser() {
-        settingsPanel = new JPanel(new FlowLayout());
-        settingsPanel.add(new JLabel("Rozmiar:"));
-
-        JTextField sizeField = new JTextField(String.valueOf(eraserSize), 3);
-        sizeField.addKeyListener(new java.awt.event.KeyAdapter() {
-            @Override
-            public void keyReleased(java.awt.event.KeyEvent e) {
-                try {
-                    int val = Integer.parseInt(sizeField.getText().trim());
-                    eraserSize = Math.max(1, val); // Minimalny rozmiar = 1
-                } catch (NumberFormatException ex) {
-                    eraserSize = 1; // Wartość domyślna
-                }
-                sizeField.setText(String.valueOf(eraserSize));
-            }
-        });
-        settingsPanel.add(sizeField);
-    }
+    private int toolSize;
 
     @Override
     public String getName() {
@@ -40,6 +20,8 @@ public class Eraser implements Tool {
 
     @Override
     public JPanel getSettingsPanel() {
+        JPanel settingsPanel = new JPanel(new GridLayout(2,1));
+        settingsPanel.add(SizeSettings.getSettingsPanel());
         return settingsPanel;
     }
 
@@ -56,7 +38,8 @@ public class Eraser implements Tool {
     @Override
     public void onMouseMove(MouseEvent e, PixelCanvas canvas, PixelModel model) {
         // Wyświetlamy border podczas ruchu myszy
-        new ColorBorder(e, canvas, Color.RED, eraserSize);
+        toolSize = SizeSettings.getToolSize();
+        new ColorBorder(e, canvas, Color.RED, toolSize);
     }
 
     @Override
@@ -65,18 +48,18 @@ public class Eraser implements Tool {
     }
 
     private void erase(MouseEvent e, PixelCanvas canvas, PixelModel model) {
+        toolSize = SizeSettings.getToolSize();
+
         int px = canvas.screenToPixelX(e.getX());
         int py = canvas.screenToPixelY(e.getY());
-        int half = eraserSize / 2;
+        int half = toolSize / 2;
 
-        for (int dy = -half; dy <= half; dy++) {
-            for (int dx = -half; dx <= half; dx++) {
-                int nx = px + dx;
-                int ny = py + dy;
-                canvas.setPixelSafe(nx, ny, 0); // "0" oznacza przezroczystość
+        for (int dy = 0; dy < toolSize; dy++) {
+            for (int dx = 0; dx < toolSize; dx++) {
+                canvas.setPixelSafe(px - half + dx, py -half + dy, 0); // Zakładamy, że "1" to czarny kolor
             }
         }
-        new ColorBorder(e, canvas, Color.RED, eraserSize);
+        new ColorBorder(e, canvas, Color.RED, toolSize);
         canvas.repaint();
     }
 

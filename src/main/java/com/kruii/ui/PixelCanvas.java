@@ -3,9 +3,11 @@ package com.kruii.ui;
 import javax.swing.*;
 
 import com.kruii.model.PixelModel;
+import com.kruii.utils.Circle;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Path2D;
 
 public class PixelCanvas extends JPanel {
 
@@ -20,16 +22,70 @@ public class PixelCanvas extends JPanel {
     private Shape temporaryBorder; // Przechowuje aktualny border
     private Color borderColor = Color.RED; // Kolor borderu
 
-    public void drawTemporaryBorder(int x, int y, int width, int height, Color color) {
+    public void drawTemporaryBorder(int x, int y, int width, int height, Color color, int type) {
         borderColor = color;
-
         int pixelSize = (int) Math.round(zoomFactor);
-        int screenX = offsetX + x * pixelSize;
-        int screenY = offsetY + y * pixelSize;
+        int screenX   = offsetX + x * pixelSize;
+        int screenY   = offsetY + y * pixelSize;
+    
+        if (type == 1) {
+            // Używamy nowej klasy Circle do pobrania gotowego obrysu
+            int circleBorder[][] = Circle.getPixelCircleBorder(
+                width,
+                height,
+                pixelSize
+            );
+    
+            // Tworzymy obiekt Path2D (można też użyć GeneralPath)
+            Path2D borderPath = new Path2D.Float();
+    
+            // Pętla po wierszach i kolumnach w circleBorder
+            for (int row = 0; row < circleBorder.length; row++) {
+                if (row==0 || row==circleBorder.length-1) {
+                    for (int col = 0; col < circleBorder[row].length; col++) {
+                        if (circleBorder[row][col] == 1) {
+                            borderPath.append(new Rectangle.Double(
+                                screenX+row*pixelSize, 
+                                screenY+col*pixelSize, 
+                                pixelSize,  
+                                pixelSize
+                            ), false);
+                        }
+                    }
+                }else if (circleBorder.length>2){
+                    for (int col = 0; col < circleBorder[row].length; col++) {
+                        if (circleBorder[row][col] == 1) {
+                            borderPath.append(new Rectangle.Double(
+                                screenX+row*pixelSize, 
+                                screenY+col*pixelSize, 
+                                pixelSize,  
+                                pixelSize
+                            ), false);
+                            break;
+                        }
+                    }
+                    for (int col = circleBorder[row].length-1; col >= 0; col--) {
+                        if (circleBorder[row][col] == 1) {
+                            borderPath.append(new Rectangle.Double(
+                                screenX+row*pixelSize, 
+                                screenY+col*pixelSize, 
+                                pixelSize,  
+                                pixelSize
+                            ), false);
+                            break;
+                        }
+                    }
+                }
+            }
 
-        temporaryBorder = new Rectangle(screenX, screenY, width * pixelSize, height * pixelSize);
+            temporaryBorder = borderPath;
+        } else {
+            // Domyślny kwadrat
+            temporaryBorder = new Rectangle(screenX, screenY, width * pixelSize, height * pixelSize);
+        }
         repaint();
     }
+    
 
     public void clearTemporaryGraphics() {
         temporaryBorder = null; // Usuń border
@@ -156,7 +212,6 @@ public class PixelCanvas extends JPanel {
             }
         }
     }
-    
 
     public void centerCanvas() {
         int pixelSize = (int) Math.round(zoomFactor);

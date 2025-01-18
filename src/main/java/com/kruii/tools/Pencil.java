@@ -4,6 +4,8 @@ import com.kruii.ui.Tool;
 import com.kruii.ui.PixelCanvas;
 import com.kruii.model.PixelModel;
 import com.kruii.utils.ColorBorder;
+import com.kruii.utils.ColorSettings;
+import com.kruii.utils.SizeSettings;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,38 +13,8 @@ import java.awt.event.MouseEvent;
 
 public class Pencil implements Tool {
 
-    private final JPanel settingsPanel; 
-    private int pencilSize = 1;
-    private int pencilValue = 200; // od 0..255 (im więcej, tym jaśniejszy)
-
-    public Pencil() {
-        settingsPanel = new JPanel(new FlowLayout());
-        settingsPanel.add(new JLabel("Rozmiar:"));
-        JTextField sizeField = new JTextField(String.valueOf(pencilSize), 3);
-        sizeField.addKeyListener(new java.awt.event.KeyAdapter() {
-            @Override
-            public void keyReleased(java.awt.event.KeyEvent e) {
-                try {
-                    int val = Integer.parseInt(sizeField.getText());
-                    pencilSize = Math.max(1, val);
-                } catch (NumberFormatException ex) { 
-                    pencilSize=1; 
-                }
-                sizeField.setText(String.valueOf(pencilSize));
-            }
-        });
-        settingsPanel.add(sizeField);
-
-        settingsPanel.add(new JLabel("Kolor(0-255):"));
-        JTextField valField = new JTextField(String.valueOf(pencilValue), 3);
-        valField.addActionListener(e -> {
-            try {
-                int val = Integer.parseInt(valField.getText());
-                pencilValue = Math.min(255, Math.max(0, val));
-            } catch (NumberFormatException ex) { /* ignoruj */ }
-        });
-        settingsPanel.add(valField);
-    }
+    private int toolSize;
+    private int toolColor;
 
     @Override
     public String getName() {
@@ -51,6 +23,9 @@ public class Pencil implements Tool {
 
     @Override
     public JPanel getSettingsPanel() {
+        JPanel settingsPanel = new JPanel(new GridLayout(2,1));
+        settingsPanel.add(SizeSettings.getSettingsPanel());
+        settingsPanel.add(ColorSettings.getSettingsPanel());
         return settingsPanel;
     }
 
@@ -66,7 +41,8 @@ public class Pencil implements Tool {
 
     @Override
     public void onMouseMove(MouseEvent e, PixelCanvas canvas, PixelModel model) {
-        new ColorBorder(e, canvas, Color.BLUE, pencilSize);
+        toolSize = SizeSettings.getToolSize();
+        new ColorBorder(e, canvas, Color.BLUE, toolSize);
     }
 
     @Override
@@ -75,17 +51,19 @@ public class Pencil implements Tool {
     }
 
     private void draw(MouseEvent e, PixelCanvas canvas, PixelModel model) {
+        toolSize = SizeSettings.getToolSize();
+        toolColor = ColorSettings.getToolValue();
+
         int px = canvas.screenToPixelX(e.getX());
         int py = canvas.screenToPixelY(e.getY());
-        int half = pencilSize / 2;
-        for (int dy = -half; dy < pencilSize - half; dy++) {
-            for (int dx = -half; dx < pencilSize - half; dx++) {
-                int nx = px + dx;
-                int ny = py + dy;
-                canvas.setPixelSafe(nx, ny, pencilValue);
+        int half = toolSize / 2;
+        
+        for (int dy = 0; dy < toolSize; dy++) {
+            for (int dx = 0; dx < toolSize; dx++) {
+                canvas.setPixelSafe(px - half + dx, py -half + dy, toolColor); // Zakładamy, że "1" to czarny kolor
             }
         }
-        new ColorBorder(e, canvas, Color.BLUE, pencilSize);
+        new ColorBorder(e, canvas, Color.BLUE, toolSize);
         canvas.repaint();
     }
 }

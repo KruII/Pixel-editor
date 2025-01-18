@@ -9,12 +9,19 @@ public class PixelModel {
     private final int height;
     private final int[][] pixels; 
 
+    private Color[] palette;
+
     public PixelModel(int width, int height) {
         this.width = width;
         this.height = height;
         this.pixels = new int[height][width];
         for (int y = 0; y < height; y++) {
             Arrays.fill(this.pixels[y], 0);
+        }
+        this.palette = new Color[256]; // przykładowy rozmiar
+        // wrzuć tu jakieś kolory lub zrób metodę do wypełniania
+        for (int i = 0; i < 256; i++) {
+            this.palette[i] = new Color(i, i, i); 
         }
     }
 
@@ -28,6 +35,10 @@ public class PixelModel {
 
     public int getPixel(int x, int y) {
         return pixels[y][x];
+    }
+
+    public Color[] getPalette() {
+        return palette;
     }
 
     public void setPixel(int x, int y, int val) {

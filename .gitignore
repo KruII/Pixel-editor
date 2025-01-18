@@ -34,3 +34,5 @@ Thumbs.db
 
 # Lokalne konfiguracje systemowe
 .vscode/
+
+effective-pom.xml
