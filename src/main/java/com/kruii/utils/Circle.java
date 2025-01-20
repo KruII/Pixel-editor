@@ -1,9 +1,5 @@
 package com.kruii.utils;
 
-import java.awt.Shape;
-import java.awt.geom.Path2D;
-import java.awt.geom.Rectangle2D;
-
 public class Circle {
 
     public static int[][] getPixelCircleBorder(int width,int height,int pixelSize){
@@ -14,8 +10,7 @@ public class Circle {
      * Uwzględnia przypadki parzystych i nieparzystych wymiarów, aby uniknąć
      * problemów typu "+1" przy rysowaniu.
      *
-     * @param x        współrzędna X (w logice gry/rysunku, nie w pikselach ekranu)
-     * @param y        współrzędna Y
+     * 
      * @param width    szerokość obszaru koła (średnica albo minimalny wymiar)
      * @param height   wysokość obszaru koła (średnica albo minimalny wymiar)
      * @param zoom     współczynnik powiększenia: ile pikseli na 1 jednostkę logiki

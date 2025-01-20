@@ -14,7 +14,7 @@ import java.awt.event.MouseEvent;
 public class Pencil implements Tool {
 
     private int toolSize;
-    private int toolColor;
+    private Color color;
 
     @Override
     public String getName() {
@@ -42,28 +42,35 @@ public class Pencil implements Tool {
     @Override
     public void onMouseMove(MouseEvent e, PixelCanvas canvas, PixelModel model) {
         toolSize = SizeSettings.getToolSize();
-        new ColorBorder(e, canvas, Color.BLUE, toolSize);
+        new ColorBorder(e, canvas, Color.GREEN, toolSize);
     }
 
     @Override
     public void onMouseRelease(MouseEvent e, PixelCanvas canvas, PixelModel model) {
-        // nic specjalnego
+        // nic
     }
 
     private void draw(MouseEvent e, PixelCanvas canvas, PixelModel model) {
         toolSize = SizeSettings.getToolSize();
-        toolColor = ColorSettings.getToolValue();
+        color = ColorSettings.getSelectedColor();  // <-- pobieramy aktualnie wybrany kolor
 
         int px = canvas.screenToPixelX(e.getX());
         int py = canvas.screenToPixelY(e.getY());
         int half = toolSize / 2;
-        
+
         for (int dy = 0; dy < toolSize; dy++) {
             for (int dx = 0; dx < toolSize; dx++) {
-                canvas.setPixelSafe(px - half + dx, py -half + dy, toolColor); // Zakładamy, że "1" to czarny kolor
+                // Zapisujemy piksel jako ARGB do modelu
+                canvas.setPixelSafe(
+                    px - half + dx,
+                    py - half + dy,
+                    color.getRGB()
+                );
             }
         }
-        new ColorBorder(e, canvas, Color.BLUE, toolSize);
+
+        // Rysowanie obrysu
+        new ColorBorder(e, canvas, Color.GREEN, toolSize);
         canvas.repaint();
     }
 }
