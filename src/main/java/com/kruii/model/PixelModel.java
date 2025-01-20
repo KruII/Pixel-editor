@@ -7,21 +7,16 @@ public class PixelModel {
 
     private final int width;
     private final int height;
-    private final int[][] pixels; 
-
-    private Color[] palette;
+    private final int[][] pixels; // Teraz przechowujemy pełen ARGB
 
     public PixelModel(int width, int height) {
         this.width = width;
         this.height = height;
         this.pixels = new int[height][width];
+        
+        // Domyślnie ustawiamy 0 (co potraktujemy jako "przezroczysty" / brak koloru)
         for (int y = 0; y < height; y++) {
             Arrays.fill(this.pixels[y], 0);
-        }
-        this.palette = new Color[256]; // przykładowy rozmiar
-        // wrzuć tu jakieś kolory lub zrób metodę do wypełniania
-        for (int i = 0; i < 256; i++) {
-            this.palette[i] = new Color(i, i, i); 
         }
     }
 
@@ -33,23 +28,26 @@ public class PixelModel {
         return height;
     }
 
+    /**
+     * Zwraca surowy int (ARGB) z tablicy.
+     * Jeśli wartość to 0, potraktujemy ją jako brak koloru (transparent).
+     */
     public int getPixel(int x, int y) {
         return pixels[y][x];
     }
-
-    public Color[] getPalette() {
-        return palette;
+    
+    public void setPixel(int x, int y, int argb) {
+        pixels[y][x] = argb;
     }
 
-    public void setPixel(int x, int y, int val) {
-        pixels[y][x] = val;
-    }
-
+    /**
+     * Zwraca obiekt Color na podstawie surowego ARGB.
+     * Jeśli value == 0, zwracamy null, by potraktować to jako przezroczystość.
+     */
     public Color getColorForValue(int value) {
-        if (value <= 0) {
-            return null; // transparent
+        if (value == 0) {
+            return null; // brak koloru / przezroczysty
         }
-        int c = Math.min(255, value);
-        return new Color(c, c, c); // prosta skala szarości
+        return new Color(value, true);  // tworzy Color z ARGB
     }
 }

@@ -1,13 +1,13 @@
 package com.kruii.tools;
 
+import com.kruii.ui.PixelCanvas;
 import com.kruii.ui.Tool;
+import com.kruii.model.PixelModel;
 import com.kruii.utils.Circle;
 import com.kruii.utils.ColorBorder;
 import com.kruii.utils.ColorSettings;
 import com.kruii.utils.ColorUtils;
 import com.kruii.utils.SizeSettings;
-import com.kruii.ui.PixelCanvas;
-import com.kruii.model.PixelModel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -18,7 +18,7 @@ import java.util.List;
 public class Brush implements Tool {
 
     private int toolSize;
-    private int toolColor;
+    private Color toolColor;  // Będziemy pobierać z ColorSettings
 
     @Override
     public String getName() {
@@ -27,7 +27,8 @@ public class Brush implements Tool {
 
     @Override
     public JPanel getSettingsPanel() {
-        JPanel settingsPanel = new JPanel(new GridLayout(2,1));
+        // Panel z ustawieniami: rozmiar i kolor
+        JPanel settingsPanel = new JPanel(new GridLayout(2, 1));
         settingsPanel.add(SizeSettings.getSettingsPanel());
         settingsPanel.add(ColorSettings.getSettingsPanel());
         return settingsPanel;
@@ -46,88 +47,99 @@ public class Brush implements Tool {
     @Override
     public void onMouseMove(MouseEvent e, PixelCanvas canvas, PixelModel model) {
         toolSize = SizeSettings.getToolSize();
-        new ColorBorder(e, canvas, Color.BLUE, toolSize, 1);
+        // Wyświetlamy obrys pędzla
+        new ColorBorder(e, canvas, Color.GREEN, toolSize, 1);
     }
 
     @Override
     public void onMouseRelease(MouseEvent e, PixelCanvas canvas, PixelModel model) {
-        // nic specjalnego
+        // Nic specjalnego
     }
 
     private void draw(MouseEvent e, PixelCanvas canvas, PixelModel model) {
         toolSize = SizeSettings.getToolSize();
-        toolColor = ColorSettings.getToolValue();
+        toolColor = ColorSettings.getSelectedColor(); // kolor wybrany w JColorChooser
 
         int px = canvas.screenToPixelX(e.getX());
         int py = canvas.screenToPixelY(e.getY());
 
+        // Przykładowa "twardość" pędzla
         float hardness = 0.8f;
+
+        // Rysowanie okrągłym pędzlem
         paintWithBrush(px, py, toolSize, toolSize, hardness, toolColor, canvas, model);
-                
-        new ColorBorder(e, canvas, Color.BLUE, toolSize, 1);
+
+        // Obrys pędzla
+        new ColorBorder(e, canvas, Color.GREEN, toolSize, 1);
         canvas.repaint();
     }
 
-    public void paintWithBrush(int cx, int cy, int sizeX, int sizeY, float hardness, int colorIndex, PixelCanvas canvas, PixelModel model) {
-        // 1. Tworzymy tablicę 2D, gdzie circleBorder[y][x] == 1 oznacza piksel do malowania.
-        int[][] circleBorder = Circle.getPixelCircleBorder(
+    /**
+     * Metoda odpowiedzialna za malowanie okrągłym pędzlem z uwzględnieniem twardości.
+     */
+    public void paintWithBrush(int cx, int cy, int sizeX, int sizeY,
+                               float hardness, Color brushColor,
+                               PixelCanvas canvas, PixelModel model) 
+    {
+        // 1. Pobieramy maskę pikseli okręgu (1 = wewnątrz obrysu, 0 = poza)
+        int[][] circleMask = Circle.getPixelCircleBorder(
             sizeX,
             sizeY,
-            (int) Math.round(canvas.getZoomFactor())
+            (int)Math.round(canvas.getZoomFactor())
         );
-    
-        int height = circleBorder.length;
-        int width  = (height > 0) ? circleBorder[0].length : 0;
-    
-        // Ustalamy dla pędzla parzystego centralny obszar 2x2
+
+        int maskHeight = circleMask.length;
+        int maskWidth  = (maskHeight > 0) ? circleMask[0].length : 0;
+
+        // Sprawdzamy, czy rozmiar pędzla jest parzysty (wówczas "środek" to 2x2)
         boolean evenBrush = (sizeX % 2 == 0) && (sizeY % 2 == 0);
         int centerStartX = 0, centerEndX = 0, centerStartY = 0, centerEndY = 0;
         if (evenBrush) {
             centerStartX = sizeX / 2 - 1;
-            centerEndX   = sizeX / 2;     // centralne pozycje: centerStartX oraz centerEndX
+            centerEndX   = sizeX / 2;
             centerStartY = sizeY / 2 - 1;
             centerEndY   = sizeY / 2;
         }
-    
-        // 2. Dla każdego wiersza zbieramy listy kolumn, w których jest 1
+
+        // 2. Dla każdego wiersza zbieramy listy x, gdzie circleMask[y][x] = 1
         @SuppressWarnings("unchecked")
-        List<Integer>[] rowPositions = new List[height];
-        for (int y = 0; y < height; y++) {
+        List<Integer>[] rowPositions = new List[maskHeight];
+        for (int y = 0; y < maskHeight; y++) {
             rowPositions[y] = new ArrayList<>();
-            for (int x = 0; x < width; x++) {
-                if (circleBorder[y][x] == 1) {
+            for (int x = 0; x < maskWidth; x++) {
+                if (circleMask[y][x] == 1) {
                     rowPositions[y].add(x);
                 }
             }
         }
-    
-        // 3. Dla każdej kolumny zbieramy listy wierszy, w których jest 1
+
+        // 3. Dla każdej kolumny zbieramy listy y, gdzie circleMask[y][x] = 1
         @SuppressWarnings("unchecked")
-        List<Integer>[] colPositions = new List[width];
-        for (int x = 0; x < width; x++) {
+        List<Integer>[] colPositions = new List[maskWidth];
+        for (int x = 0; x < maskWidth; x++) {
             colPositions[x] = new ArrayList<>();
-            for (int y = 0; y < height; y++) {
-                if (circleBorder[y][x] == 1) {
+            for (int y = 0; y < maskHeight; y++) {
+                if (circleMask[y][x] == 1) {
                     colPositions[x].add(y);
                 }
             }
         }
-    
-        // 4. Iterujemy po wszystkich pikselach, gdzie circleBorder == 1
-        for (int cirY = 0; cirY < height; cirY++) {
-            for (int cirX = 0; cirX < width; cirX++) {
-                if (circleBorder[cirY][cirX] == 1) {
-    
-                    // Wyznaczamy rzeczywiste współrzędne na obrazie
+
+        // 4. Iteracja po pikselach wewnątrz okręgu
+        for (int cirY = 0; cirY < maskHeight; cirY++) {
+            for (int cirX = 0; cirX < maskWidth; cirX++) {
+                if (circleMask[cirY][cirX] == 1) {
+
+                    // Przeliczenie na współrzędne w PixelModel
                     int nx = cx + cirX - sizeX / 2;
                     int ny = cy + cirY - sizeY / 2;
-    
-                    // Sprawdzamy, czy mieszczymy się w granicach
+
+                    // Sprawdzenie granic
                     if (nx < 0 || ny < 0 || nx >= model.getWidth() || ny >= model.getHeight()) {
                         continue;
                     }
-    
-                    // Obliczenie alfa – standardowo przez odległość od środka w poziomie i pionie
+
+                    // Obliczamy przezroczystość w poziomie (rowAlpha)
                     float rowAlpha = 1.0f;
                     List<Integer> rList = rowPositions[cirY];
                     if (rList.size() > 1) {
@@ -141,7 +153,8 @@ public class Brush implements Tool {
                             rowAlpha = Math.max(0f, Math.min(1f, rowAlpha));
                         }
                     }
-    
+
+                    // Obliczamy przezroczystość w pionie (colAlpha)
                     float colAlpha = 1.0f;
                     List<Integer> cList = colPositions[cirX];
                     if (cList.size() > 1) {
@@ -155,29 +168,39 @@ public class Brush implements Tool {
                             colAlpha = Math.max(0f, Math.min(1f, colAlpha));
                         }
                     }
-    
-                    // Domyślnie finalna alfa
+
+                    // Ostateczna alpha = rowAlpha * colAlpha * hardness
                     float alpha = rowAlpha * colAlpha * hardness;
-    
-                    // Jeśli pędzel jest parzysty, ustawiamy centralny kwadrat 2x2 na pełną twardość (bez gradientu)
-                    if (evenBrush && (cirX == centerStartX || cirX == centerEndX) && (cirY == centerStartY || cirY == centerEndY)) {
+
+                    // Jeżeli pędzel jest parzysty, dla środkowego kwadratu 2x2 nadajemy pełną twardość
+                    if (evenBrush
+                        && (cirX == centerStartX || cirX == centerEndX)
+                        && (cirY == centerStartY || cirY == centerEndY)) 
+                    {
                         alpha = hardness;
                     } else {
+                        // Minim. poziom wypełnienia
                         alpha = Math.max(alpha, 0.05f);
                     }
-    
-                    // Mieszanie kolorów
-                    Color fg = model.getPalette()[colorIndex];               // kolor "pędzla"
-                    Color bg = model.getPalette()[model.getPixel(nx, ny)];       // kolor tła
+
+                    // --- MIESZANIE KOLORÓW (alpha-blend) ---
+                    
+                    // Kolor pędzla (FG)
+                    Color fg = brushColor;
+
+                    // Aktualny kolor w modelu (BG)
+                    int currentARGB = model.getPixel(nx, ny);
+                    Color bg = (currentARGB == 0)
+                            ? new Color(0, 0, 0, 0) // przezroczysty
+                            : new Color(currentARGB, true);
+
+                    // Mieszamy za pomocą naszej metody blendColors(fg, bg, alpha)
                     Color blended = ColorUtils.blendColors(fg, bg, alpha);
-    
-                    // Najbliższy kolor z palety
-                    int newIndex = ColorUtils.findClosestColorInPalette(blended, model.getPalette());
-                    model.setPixel(nx, ny, newIndex);
+
+                    // Zapisujemy wynikowy kolor w modelu, jako ARGB
+                    model.setPixel(nx, ny, blended.getRGB());
                 }
             }
         }
     }
-    
-}    
-
+}

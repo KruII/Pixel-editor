@@ -2,48 +2,59 @@ package com.kruii.utils;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class ColorSettings {
 
-    // Współdzielony rozmiar między narzędziami
-    private static int colorValue = 200; // od 0..255 (im więcej, tym jaśniejszy)
+    private static Color selectedColor = Color.BLACK; // Domyślnie czarny
 
     // Panel ustawień współdzielony między narzędziami
     private static final JPanel settingsPanel = new JPanel(new FlowLayout());
+    private static final JButton colorButton = new JButton("Wybierz kolor");
 
     static {
-        // Inicjalizacja panelu ustawień
-        settingsPanel.add(new JLabel("Kolor(0-255):"));
+        // Ustaw wstępny kolor tła przycisku
+        colorButton.setBackground(selectedColor);
+        colorButton.setForeground(Color.WHITE);
 
-        JTextField colorField = new JTextField(String.valueOf(colorValue), 3);
-        colorField.addKeyListener(new KeyAdapter() {
+        colorButton.addActionListener(new ActionListener() {
             @Override
-            public void keyReleased(KeyEvent e) {
-                try {
-                    int val = Integer.parseInt(colorField.getText().trim());
-                    colorValue = Math.min(255, Math.max(0, val));
-                } catch (NumberFormatException ex) {
-                    colorValue = 1; // Ustaw wartość domyślną w przypadku błędu
+            public void actionPerformed(ActionEvent e) {
+                Color newColor = JColorChooser.showDialog(
+                        null,
+                        "Wybierz kolor",
+                        selectedColor
+                );
+                if (newColor != null) {
+                    selectedColor = newColor;
+                    colorButton.setBackground(newColor);
                 }
-                colorField.setText(String.valueOf(colorValue)); // Zaktualizuj pole tekstowe
             }
         });
-        settingsPanel.add(colorField);
+
+        settingsPanel.add(new JLabel("Kolor:"));
+        settingsPanel.add(colorButton);
     }
 
-    // Metoda do pobierania rozmiaru
-    public static int getToolValue() {
-        return colorValue;
+    /**
+     * Metoda do pobierania wybranego koloru.
+     */
+    public static Color getSelectedColor() {
+        return selectedColor;
     }
 
-    // Metoda do ustawiania rozmiaru
-    public static void setToolValue(int size) {
-        colorValue = Math.max(0, size);
+    /**
+     * Metoda do ustawiania koloru z zewnątrz (opcjonalnie).
+     */
+    public static void setSelectedColor(Color color) {
+        selectedColor = color;
+        colorButton.setBackground(color);
     }
 
-    // Metoda do pobierania panelu ustawień
+    /**
+     * Zwraca panel ustawień (z przyciskiem wyboru koloru).
+     */
     public static JPanel getSettingsPanel() {
         return settingsPanel;
     }
