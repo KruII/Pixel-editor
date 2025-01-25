@@ -1,6 +1,9 @@
 package com.kruii;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
 import com.kruii.dock.DockManager;
 import com.kruii.dock.DockablePanel;
 import com.kruii.model.PixelModel;
@@ -8,6 +11,11 @@ import com.kruii.ui.PixelCanvas;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,6 +59,7 @@ public class MainFrame extends JFrame {
         fileLoad = new JMenuItem("Load");
         fileSave = new JMenuItem("Save");
         fileExport = new JMenuItem("Export");
+        fileExport.addActionListener(e -> openExportDialog());
         
         // Akcja dla "New"
         fileNew.addActionListener(e -> openNewDialog());
@@ -208,5 +217,89 @@ public class MainFrame extends JFrame {
         super.paint(g);
         // Wywołanie metody odpowiedzialnej za rysowanie podświetlenia z DockManager
         dockManager.paintHighlights(g);
+    }
+
+
+    private void openExportDialog() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Export Image");
+    
+        // Definiuj filtry
+        FileNameExtensionFilter kruiiFilter = new FileNameExtensionFilter("KRUII Image (.images.kruii)", "images.kruii");
+        FileNameExtensionFilter pngFilter = new FileNameExtensionFilter("PNG Image (.png)", "png");
+        FileNameExtensionFilter jpgFilter = new FileNameExtensionFilter("JPEG Image (.jpg)", "jpg");
+    
+        // Ustaw .images.kruii jako domyślny i zablokuj "All files"
+        fileChooser.setFileFilter(kruiiFilter); // ⭐ Domyślny filtr
+        fileChooser.addChoosableFileFilter(pngFilter);
+        fileChooser.addChoosableFileFilter(jpgFilter);
+        fileChooser.setAcceptAllFileFilterUsed(false); // ⭐ Blokuj zapis bez rozszerzenia
+    
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            String format = ((FileNameExtensionFilter) fileChooser.getFileFilter()).getExtensions()[0]; // ⭐ Pobierz wybrany format
+            String path = file.getAbsolutePath();
+    
+            // Wymuś rozszerzenie, jeśli brak
+            if (!path.toLowerCase().endsWith("." + format)) {
+                path += "." + format;
+            }
+    
+            // Eksportuj
+            try {
+                switch (format) {
+                    case "images.kruii":
+                        exportToKruiiFormat(path);
+                        break;
+                    case "png":
+                    case "jpg":
+                        exportToImageFormat(path, format);
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Nieobsługiwany format");
+                }
+                JOptionPane.showMessageDialog(this, "Eksportowano pomyślnie!");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Błąd eksportu: " + ex.getMessage(), "Błąd", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void exportToKruiiFormat(String path) throws IOException {
+        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(path))) {
+            // Nagłówek
+            dos.writeUTF("KRUII_IMAGE");
+            // Wymiary
+            dos.writeInt(model.getWidth());
+            dos.writeInt(model.getHeight());
+            // Dane pikseli (ARGB)
+            for (int y = 0; y < model.getHeight(); y++) {
+                for (int x = 0; x < model.getWidth(); x++) {
+                    dos.writeInt(model.getPixel(x, y));
+                }
+            }
+        }
+    }
+
+    private void exportToImageFormat(String path, String format) throws IOException {
+        BufferedImage image = new BufferedImage(model.getWidth(), model.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < model.getHeight(); y++) {
+            for (int x = 0; x < model.getWidth(); x++) {
+                int argb = model.getPixel(x, y);
+                image.setRGB(x, y, argb);
+            }
+        }
+
+        // Dla JPG konwertuj na RGB (bez przezroczystości)
+        if (format.equals("jpg")) {
+            BufferedImage rgbImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = rgbImage.createGraphics();
+            g.drawImage(image, 0, 0, Color.WHITE, null); // Tło białe dla przezroczystości
+            g.dispose();
+            image = rgbImage;
+        }
+
+        ImageIO.write(image, format.toUpperCase(), new File(path));
     }
 }
