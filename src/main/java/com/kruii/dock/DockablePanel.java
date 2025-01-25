@@ -191,6 +191,12 @@ public class DockablePanel extends JPanel {
         }
     }
 
+    public void setCanvas(PixelCanvas newCanvas) {
+        if (toolsPanel != null) {
+            toolsPanel.setCanvas(newCanvas);
+        }
+    }
+
     // Klasa obsługująca resize
     private class ResizingPanel extends MouseAdapter {
     
